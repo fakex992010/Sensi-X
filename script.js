@@ -1,5 +1,5 @@
 // ==========================================================
-// SensiX — Sensitivity Engine v10 (4-Layer + Smart Auto-Detect + Fallback Tip)
+// SensiX — Sensitivity Engine v11 (Honest Auto-Detect)
 // ==========================================================
 
 var brandSelect     = document.getElementById("brand");
@@ -35,7 +35,7 @@ function showToast(message, type) {
     setTimeout(function () {
       if (toast.parentNode) toast.parentNode.removeChild(toast);
     }, 300);
-  }, 4500);
+  }, 5000);
 }
 
 // ---------- POPULATE BRANDS ----------
@@ -273,7 +273,7 @@ function getFingerMod(fingers) {
 }
 
 // ==========================================================
-// LAYER 4 — DPI CALCULATOR
+// LAYER 4 — DPI
 // ==========================================================
 function calculateDPI(hz, size, tier) {
   var dpi;
@@ -682,7 +682,7 @@ window.addEventListener("load", function () {
 });
 
 // ==========================================================
-// AUTO DETECT v2 — 3-Strategy + Fallback Tip
+// AUTO DETECT v3 — Honest Fallback Message
 // ==========================================================
 var autoDetectBtn = document.getElementById("autoDetectBtn");
 if (autoDetectBtn) {
@@ -696,7 +696,7 @@ if (autoDetectBtn) {
 
     // ---------- STRATEGY 1: Keyword match in UA ----------
     var knownKeywords = [
-      "redmi", "poco", "xiaomi", "mi ",
+      "redmi", "poco", "xiaomi",
       "sm-", "galaxy",
       "rmx", "realme",
       "cph", "oppo", "reno",
@@ -776,23 +776,23 @@ if (autoDetectBtn) {
       populateModels();
       if (modelSelect) modelSelect.value = matched.device.model;
       if (searchBox) searchBox.value = matched.device.model;
-      showToast("Detected: " + matched.device.model + " (via " + matchedBy + ")", "success");
+      showToast("Detected: " + matched.device.model, "success");
 
-      // Hide the tip if it exists
       var oldTip = document.getElementById("autoTip");
       if (oldTip) oldTip.classList.remove("show");
     } else {
-      showToast("Couldn't auto-detect. Please select manually.", "warning");
+      // Honest, clear message for the user
+      showToast("Your browser blocks device info for privacy. Please select your phone from the menu below.", "warning");
 
-      // Show helpful inline tip below the button
+      // Show helpful tip below the button
       var tip = document.getElementById("autoTip");
       if (!tip) {
         tip = document.createElement("div");
         tip.id = "autoTip";
         tip.className = "auto-tip";
-        tip.innerHTML = '<strong>Tip:</strong> Browsers hide device info for privacy. ' +
-          'Type your phone model in the search box — e.g. <strong>Redmi Note 13</strong>, ' +
-          '<strong>Infinix Hot 40</strong>, or <strong>Samsung A54</strong>.';
+        tip.innerHTML = '<strong>Why?</strong> Modern browsers hide phone model info for privacy. ' +
+          'Please select your phone from the <strong>Phone Brand</strong> and <strong>Phone Model</strong> menus below, ' +
+          'or type in the search box.';
         autoDetectBtn.parentNode.insertBefore(tip, autoDetectBtn.nextSibling);
       }
       tip.classList.add("show");
