@@ -1,5 +1,5 @@
 // ==========================================================
-// SensiX — Sensitivity Engine v10 (4-Layer + Smart Auto-Detect)
+// SensiX — Sensitivity Engine v10 (4-Layer + Smart Auto-Detect + Fallback Tip)
 // ==========================================================
 
 var brandSelect     = document.getElementById("brand");
@@ -206,7 +206,6 @@ function setText(id, value) { var el = document.getElementById(id); if (el) el.t
 
 // ==========================================================
 // LAYER 1 — TOUCH RESPONSE FOUNDATION
-// Base values from refresh rate + screen size + RAM
 // ==========================================================
 function getTouchBase(hz, ram, size, isIOS) {
   var general, reddot, sc2x, sc4x, awm, freelook;
@@ -274,7 +273,7 @@ function getFingerMod(fingers) {
 }
 
 // ==========================================================
-// LAYER 4 — DPI CALCULATOR (Android only)
+// LAYER 4 — DPI CALCULATOR
 // ==========================================================
 function calculateDPI(hz, size, tier) {
   var dpi;
@@ -683,7 +682,7 @@ window.addEventListener("load", function () {
 });
 
 // ==========================================================
-// AUTO DETECT v2 — 3-Strategy Detection
+// AUTO DETECT v2 — 3-Strategy + Fallback Tip
 // ==========================================================
 var autoDetectBtn = document.getElementById("autoDetectBtn");
 if (autoDetectBtn) {
@@ -778,12 +777,36 @@ if (autoDetectBtn) {
       if (modelSelect) modelSelect.value = matched.device.model;
       if (searchBox) searchBox.value = matched.device.model;
       showToast("Detected: " + matched.device.model + " (via " + matchedBy + ")", "success");
+
+      // Hide the tip if it exists
+      var oldTip = document.getElementById("autoTip");
+      if (oldTip) oldTip.classList.remove("show");
     } else {
-      showToast("Couldn't auto-detect. Type your phone model in the search box above.", "warning");
+      showToast("Couldn't auto-detect. Please select manually.", "warning");
+
+      // Show helpful inline tip below the button
+      var tip = document.getElementById("autoTip");
+      if (!tip) {
+        tip = document.createElement("div");
+        tip.id = "autoTip";
+        tip.className = "auto-tip";
+        tip.innerHTML = '<strong>Tip:</strong> Browsers hide device info for privacy. ' +
+          'Type your phone model in the search box — e.g. <strong>Redmi Note 13</strong>, ' +
+          '<strong>Infinix Hot 40</strong>, or <strong>Samsung A54</strong>.';
+        autoDetectBtn.parentNode.insertBefore(tip, autoDetectBtn.nextSibling);
+      }
+      tip.classList.add("show");
+
+      // Focus the search box
       if (searchBox) {
         searchBox.focus();
         searchBox.scrollIntoView({ behavior: "smooth", block: "center" });
       }
+
+      // Auto-hide the tip after 8 seconds
+      setTimeout(function () {
+        if (tip) tip.classList.remove("show");
+      }, 8000);
     }
   });
 }
