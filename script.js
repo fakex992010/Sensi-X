@@ -1,6 +1,5 @@
 // ==========================================================
-// SensiX — Sensitivity Engine v9 (4-Layer Physics Algorithm)
-// Layers: Touch Response → Playstyle → Finger Count → Calibration
+// SensiX — Sensitivity Engine v10 (4-Layer + Smart Auto-Detect)
 // ==========================================================
 
 var brandSelect     = document.getElementById("brand");
@@ -36,7 +35,7 @@ function showToast(message, type) {
     setTimeout(function () {
       if (toast.parentNode) toast.parentNode.removeChild(toast);
     }, 300);
-  }, 3500);
+  }, 4500);
 }
 
 // ---------- POPULATE BRANDS ----------
@@ -210,12 +209,9 @@ function setText(id, value) { var el = document.getElementById(id); if (el) el.t
 // Base values from refresh rate + screen size + RAM
 // ==========================================================
 function getTouchBase(hz, ram, size, isIOS) {
-  // Refresh rate → base values
-  // Lower Hz = screen is slower = need HIGHER sensi to compensate
   var general, reddot, sc2x, sc4x, awm, freelook;
 
   if (hz >= 165) {
-    // Flagship gaming (ROG, RedMagic)
     general = 55; reddot = 50; sc2x = 45; sc4x = 40; awm = 30; freelook = 45;
   } else if (hz >= 144) {
     general = 65; reddot = 60; sc2x = 55; sc4x = 50; awm = 35; freelook = 55;
@@ -224,25 +220,20 @@ function getTouchBase(hz, ram, size, isIOS) {
   } else if (hz >= 90) {
     general = 88; reddot = 85; sc2x = 78; sc4x = 70; awm = 48; freelook = 72;
   } else {
-    // 60 Hz — oldest / budget screens
     general = 105; reddot = 100; sc2x = 92; sc4x = 82; awm = 58; freelook = 85;
   }
 
-  // RAM adjustment — low RAM means unstable frames = boost slightly
   if (ram <= 2)      { general += 10; reddot += 8; sc2x += 8; }
   else if (ram <= 3) { general += 6;  reddot += 5; sc2x += 5; }
   else if (ram <= 4) { general += 3;  reddot += 2; sc2x += 2; }
   else if (ram >= 12){ general -= 5;  reddot -= 5; sc2x -= 4; }
 
-  // Screen size — bigger screen means more thumb travel
-  // Smaller screens need HIGHER sensi (less travel distance)
   if (size <= 5.0)      { general += 12; reddot += 10; sc2x += 8; }
   else if (size <= 5.5) { general += 8;  reddot += 7;  sc2x += 6; }
   else if (size <= 6.0) { general += 4;  reddot += 3;  sc2x += 3; }
   else if (size >= 6.8) { general -= 5;  reddot -= 4;  sc2x -= 3; }
   else if (size >= 7.0) { general -= 8;  reddot -= 6;  sc2x -= 5; }
 
-  // iOS touch latency is lower than Android
   if (isIOS) {
     general -= 6; reddot -= 5; sc2x -= 4; sc4x -= 3; awm -= 2; freelook -= 4;
   }
@@ -255,47 +246,30 @@ function getTouchBase(hz, ram, size, isIOS) {
 
 // ==========================================================
 // LAYER 2 — PLAYSTYLE MODIFIERS
-// Each style affects sliders DIFFERENTLY
 // ==========================================================
 function getPlaystyleMod(style) {
   if (style === "headshot") {
-    // One-tap headshots: high Red Dot, high General, low AWM
     return { general: +25, reddot: +35, sc2x: +25, sc4x: +10, awm: -10, freelook: +15 };
   }
   if (style === "aggressive") {
-    // Rusher: high General + Free Look for tracking
     return { general: +10, reddot: +15, sc2x: +12, sc4x: +5, awm: -15, freelook: +20 };
   }
   if (style === "freestyle") {
-    // Drag shots: max Red Dot + Free Look, low AWM
     return { general: +20, reddot: +25, sc2x: +18, sc4x: +8, awm: -20, freelook: +25 };
   }
   if (style === "sniper") {
-    // Sniper: low everything except AWM
     return { general: -20, reddot: -15, sc2x: -20, sc4x: -25, awm: +30, freelook: -25 };
   }
-  // Balanced
   return { general: 0, reddot: 0, sc2x: 0, sc4x: 0, awm: 0, freelook: 0 };
 }
 
 // ==========================================================
 // LAYER 3 — FINGER COUNT MODIFIER
-// More fingers = more control = lower sensi is better
 // ==========================================================
 function getFingerMod(fingers) {
-  if (fingers === "2") {
-    // 2 fingers = thumbs only, needs higher sensi
-    return { general: +8, reddot: +8, sc2x: +6, sc4x: +6, awm: 0, freelook: +12 };
-  }
-  if (fingers === "3") {
-    // 3 fingers = claw, slight boost
-    return { general: +4, reddot: +4, sc2x: +3, sc4x: +3, awm: 0, freelook: +6 };
-  }
-  if (fingers === "5") {
-    // 5 fingers = pro setup, lower sensi for precision
-    return { general: -6, reddot: -6, sc2x: -4, sc4x: -4, awm: 0, freelook: -6 };
-  }
-  // 4 fingers = competitive standard, no adjustment
+  if (fingers === "2") return { general: +8, reddot: +8, sc2x: +6, sc4x: +6, awm: 0, freelook: +12 };
+  if (fingers === "3") return { general: +4, reddot: +4, sc2x: +3, sc4x: +3, awm: 0, freelook: +6 };
+  if (fingers === "5") return { general: -6, reddot: -6, sc2x: -4, sc4x: -4, awm: 0, freelook: -6 };
   return { general: 0, reddot: 0, sc2x: 0, sc4x: 0, awm: 0, freelook: 0 };
 }
 
@@ -425,7 +399,7 @@ function getCoachTips(tier, style, hz, isIPhone) {
 }
 
 // ==========================================================
-// GENERATE — main handler
+// GENERATE
 // ==========================================================
 var generateBtn = document.getElementById("generateBtn");
 
@@ -451,16 +425,10 @@ if (generateBtn) {
 
     var isIPhone = modelOpt.value.toLowerCase().indexOf("iphone") !== -1;
 
-    // ---------- LAYER 1: Touch Response ----------
     var base = getTouchBase(hz, ram, size, isIPhone);
-
-    // ---------- LAYER 2: Playstyle ----------
     var styleMod = getPlaystyleMod(style);
-
-    // ---------- LAYER 3: Finger Count ----------
     var fingerMod = getFingerMod(fingers);
 
-    // ---------- LAYER 4: Final Combine & Calibrate ----------
     var result = {
       general:  clamp(base.general  + styleMod.general  + fingerMod.general,  1, 200),
       reddot:   clamp(base.reddot   + styleMod.reddot   + fingerMod.reddot,   1, 200),
@@ -471,7 +439,6 @@ if (generateBtn) {
       dpi:      calculateDPI(hz, size, tier)
     };
 
-    // Fill sensitivity
     setText("r-general", result.general);
     setText("r-reddot", result.reddot);
     setText("r-2x", result.sc2x);
@@ -479,7 +446,6 @@ if (generateBtn) {
     setText("r-awm", result.awm);
     setText("r-freelook", result.freelook);
 
-    // ---------- iOS DPI HIDING ----------
     var dpiRow = document.getElementById("r-dpi").closest(".result-item");
     if (dpiRow) {
       if (isIPhone) {
@@ -490,13 +456,11 @@ if (generateBtn) {
       }
     }
 
-    // Hardware info
     setText("i-ram", ram + " GB");
     setText("i-hz", hz + " Hz");
     setText("i-size", size + '"');
     setText("i-dpi", isIPhone ? "iOS (No DPI)" : tier.toUpperCase());
 
-    // Buttons
     var buttons = getButtonSizes(style, fingers, size);
     setText("b-fire",   buttons.fire + "%");
     setText("b-drag",   buttons.drag + "%");
@@ -505,7 +469,6 @@ if (generateBtn) {
     setText("b-crouch", buttons.crouch + "%");
     setText("b-trans",  buttons.trans + "%");
 
-    // HUD
     var hud = getHUDRecommendation(fingers, style);
     setText("hud-layout", hud.layout);
 
@@ -519,7 +482,6 @@ if (generateBtn) {
       }
     }
 
-    // Coach tips
     var coachList = document.getElementById("coach-tips");
     if (coachList) {
       coachList.innerHTML = "";
@@ -531,7 +493,6 @@ if (generateBtn) {
       }
     }
 
-    // Show card
     var card = document.getElementById("resultCard");
     if (card) {
       card.style.display = "block";
@@ -721,33 +682,108 @@ window.addEventListener("load", function () {
   if (generateBtn) generateBtn.click();
 });
 
-// ---------- AUTO DETECT ----------
+// ==========================================================
+// AUTO DETECT v2 — 3-Strategy Detection
+// ==========================================================
 var autoDetectBtn = document.getElementById("autoDetectBtn");
 if (autoDetectBtn) {
   autoDetectBtn.addEventListener("click", function () {
     if (typeof devices === "undefined") { showToast("Device database not loaded.", "error"); return; }
-    var ua = navigator.userAgent.toLowerCase();
+
+    var ua = navigator.userAgent;
+    var uaLower = ua.toLowerCase();
     var matched = null;
-    for (var brand in devices) {
-      if (!devices.hasOwnProperty(brand)) continue;
-      var list = devices[brand];
-      for (var i = 0; i < list.length; i++) {
-        var key = list[i].model.toLowerCase().split(" ")[0];
-        if (key.length > 3 && ua.indexOf(key) !== -1) {
-          matched = { brand: brand, device: list[i] };
-          break;
+    var matchedBy = "";
+
+    // ---------- STRATEGY 1: Keyword match in UA ----------
+    var knownKeywords = [
+      "redmi", "poco", "xiaomi", "mi ",
+      "sm-", "galaxy",
+      "rmx", "realme",
+      "cph", "oppo", "reno",
+      "vivo", "oneplus", "nord",
+      "infinix", "tecno", "itel", "honor",
+      "huawei", "nova", "mate",
+      "moto ", "motorola",
+      "nokia", "pixel",
+      "iphone", "ipad"
+    ];
+
+    for (var k = 0; k < knownKeywords.length; k++) {
+      if (uaLower.indexOf(knownKeywords[k]) !== -1) {
+        for (var brand in devices) {
+          if (!devices.hasOwnProperty(brand)) continue;
+          var list = devices[brand];
+          for (var i = 0; i < list.length; i++) {
+            var modelLower = list[i].model.toLowerCase();
+            if (modelLower.indexOf(knownKeywords[k]) !== -1) {
+              matched = { brand: brand, device: list[i] };
+              matchedBy = "user agent";
+              break;
+            }
+          }
+          if (matched) break;
+        }
+        if (matched) break;
+      }
+    }
+
+    // ---------- STRATEGY 2: Screen size match ----------
+    if (!matched) {
+      var screenW = window.screen.width;
+      var screenH = window.screen.height;
+      var screenSizeInches = Math.sqrt(screenW * screenW + screenH * screenH) / (window.devicePixelRatio * 160);
+      screenSizeInches = Math.round(screenSizeInches * 2) / 2;
+
+      if (screenSizeInches > 3.5 && screenSizeInches < 8.5) {
+        for (var brand2 in devices) {
+          if (!devices.hasOwnProperty(brand2)) continue;
+          var list2 = devices[brand2];
+          for (var j = 0; j < list2.length; j++) {
+            if (Math.abs(list2[j].size - screenSizeInches) < 0.2) {
+              matched = { brand: brand2, device: list2[j] };
+              matchedBy = "screen size (~" + screenSizeInches + '")';
+              break;
+            }
+          }
+          if (matched) break;
         }
       }
-      if (matched) break;
     }
+
+    // ---------- STRATEGY 3: iOS fallback ----------
+    if (!matched) {
+      var isIOS = /iphone|ipad|ipod/.test(uaLower);
+      if (isIOS) {
+        var iphoneDefault = null;
+        if (devices["Apple iPhone"]) {
+          for (var m = 0; m < devices["Apple iPhone"].length; m++) {
+            if (devices["Apple iPhone"][m].model === "iPhone 13") {
+              iphoneDefault = devices["Apple iPhone"][m];
+              break;
+            }
+          }
+        }
+        if (iphoneDefault) {
+          matched = { brand: "Apple iPhone", device: iphoneDefault };
+          matchedBy = "iOS default (iPhone 13)";
+        }
+      }
+    }
+
+    // ---------- Handle result ----------
     if (matched) {
-      brandSelect.value = matched.brand;
+      if (brandSelect) brandSelect.value = matched.brand;
       populateModels();
-      modelSelect.value = matched.device.model;
+      if (modelSelect) modelSelect.value = matched.device.model;
       if (searchBox) searchBox.value = matched.device.model;
-      showToast("Detected: " + matched.brand + " " + matched.device.model, "success");
+      showToast("Detected: " + matched.device.model + " (via " + matchedBy + ")", "success");
     } else {
-      showToast("Could not auto-detect your model. Please select manually.", "warning");
+      showToast("Couldn't auto-detect. Type your phone model in the search box above.", "warning");
+      if (searchBox) {
+        searchBox.focus();
+        searchBox.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     }
   });
 }
