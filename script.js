@@ -1,5 +1,5 @@
 // ==========================================================
-// SensiX — Sensitivity Engine v12 (Honest Mobile-Only Auto-Detect)
+// SensiX — Sensitivity Engine v13 (Strict Mobile Auto-Detect)
 // ==========================================================
 
 var brandSelect     = document.getElementById("brand");
@@ -682,7 +682,7 @@ window.addEventListener("load", function () {
 });
 
 // ==========================================================
-// AUTO DETECT v4 — Mobile-Only, Honest
+// AUTO DETECT v5 — Strict Mobile-Only
 // ==========================================================
 var autoDetectBtn = document.getElementById("autoDetectBtn");
 if (autoDetectBtn) {
@@ -692,11 +692,25 @@ if (autoDetectBtn) {
     var ua = navigator.userAgent;
     var uaLower = ua.toLowerCase();
 
-    // ---------- STEP 1: Are we on a mobile device? ----------
-    var isMobile = /android|iphone|ipad|ipod|blackberry|opera mini|iemobile|mobile/i.test(uaLower);
+    // ---------- STRICT MOBILE CHECK ----------
+    // Only these UA patterns indicate a real phone/tablet.
+    var isRealMobile = (
+      /android/i.test(uaLower) ||
+      /iphone/i.test(uaLower) ||
+      /ipad/i.test(uaLower) ||
+      /ipod/i.test(uaLower)
+    );
 
-    if (!isMobile) {
-      // Not on mobile — be honest with the user
+    // Reject if the UA clearly shows a desktop OS
+    var isDesktopOS = (
+      /windows nt/i.test(uaLower) ||
+      /macintosh/i.test(uaLower) ||
+      /linux x86/i.test(uaLower) ||
+      /x11/i.test(uaLower)
+    );
+
+    // If it's a desktop OS OR not a real mobile → reject
+    if (isDesktopOS || !isRealMobile) {
       showToast("This button works on phones only. Please pick your phone from the menu below.", "warning");
 
       var tipDesktop = document.getElementById("autoTip");
@@ -717,12 +731,11 @@ if (autoDetectBtn) {
       return;
     }
 
-    // ---------- STEP 2: We are on mobile — try to detect ----------
+    // ---------- We're on a real mobile device ----------
     var matched = null;
 
-    // --- STRATEGY A: iPhone / iPad detection ---
-    var isIOS = /iphone|ipad|ipod/i.test(uaLower);
-    if (isIOS) {
+    // Strategy A: iPhone / iPad
+    if (/iphone|ipad|ipod/i.test(uaLower)) {
       var iphoneDefault = null;
       if (devices["Apple iPhone"]) {
         for (var m = 0; m < devices["Apple iPhone"].length; m++) {
@@ -737,7 +750,7 @@ if (autoDetectBtn) {
       }
     }
 
-    // --- STRATEGY B: Android — look for model in UA ---
+    // Strategy B: Android with model in UA
     if (!matched && /android/i.test(uaLower)) {
       var knownKeywords = [
         "redmi", "poco", "xiaomi",
@@ -771,7 +784,7 @@ if (autoDetectBtn) {
       }
     }
 
-    // ---------- STEP 3: Handle result ----------
+    // ---------- Result ----------
     if (matched) {
       if (brandSelect) brandSelect.value = matched.brand;
       populateModels();
@@ -782,7 +795,6 @@ if (autoDetectBtn) {
       var oldTip = document.getElementById("autoTip");
       if (oldTip) oldTip.classList.remove("show");
     } else {
-      // Mobile but no match — be honest
       showToast("Your browser blocks device info for privacy. Please select your phone from the menu below.", "warning");
 
       var tip = document.getElementById("autoTip");
