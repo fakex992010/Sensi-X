@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fakex992010.github.io/Sensi-X/sitemap.xml
