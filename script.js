@@ -1,5 +1,5 @@
 // ==========================================================
-// SensiX — Sensitivity Engine v11 (Honest Auto-Detect)
+// SensiX — Sensitivity Engine v12 (Honest Mobile-Only Auto-Detect)
 // ==========================================================
 
 var brandSelect     = document.getElementById("brand");
@@ -682,7 +682,7 @@ window.addEventListener("load", function () {
 });
 
 // ==========================================================
-// AUTO DETECT v3 — Honest Fallback Message
+// AUTO DETECT v4 — Mobile-Only, Honest
 // ==========================================================
 var autoDetectBtn = document.getElementById("autoDetectBtn");
 if (autoDetectBtn) {
@@ -691,86 +691,87 @@ if (autoDetectBtn) {
 
     var ua = navigator.userAgent;
     var uaLower = ua.toLowerCase();
+
+    // ---------- STEP 1: Are we on a mobile device? ----------
+    var isMobile = /android|iphone|ipad|ipod|blackberry|opera mini|iemobile|mobile/i.test(uaLower);
+
+    if (!isMobile) {
+      // Not on mobile — be honest with the user
+      showToast("This button works on phones only. Please pick your phone from the menu below.", "warning");
+
+      var tipDesktop = document.getElementById("autoTip");
+      if (!tipDesktop) {
+        tipDesktop = document.createElement("div");
+        tipDesktop.id = "autoTip";
+        tipDesktop.className = "auto-tip";
+        tipDesktop.innerHTML = '<strong>Note:</strong> Auto-detect only works on mobile phones. ' +
+          'Please select your device from the <strong>Phone Brand</strong> and <strong>Phone Model</strong> menus, ' +
+          'or type in the search box.';
+        autoDetectBtn.parentNode.insertBefore(tipDesktop, autoDetectBtn.nextSibling);
+      }
+      tipDesktop.classList.add("show");
+
+      setTimeout(function () {
+        if (tipDesktop) tipDesktop.classList.remove("show");
+      }, 8000);
+      return;
+    }
+
+    // ---------- STEP 2: We are on mobile — try to detect ----------
     var matched = null;
-    var matchedBy = "";
 
-    // ---------- STRATEGY 1: Keyword match in UA ----------
-    var knownKeywords = [
-      "redmi", "poco", "xiaomi",
-      "sm-", "galaxy",
-      "rmx", "realme",
-      "cph", "oppo", "reno",
-      "vivo", "oneplus", "nord",
-      "infinix", "tecno", "itel", "honor",
-      "huawei", "nova", "mate",
-      "moto ", "motorola",
-      "nokia", "pixel",
-      "iphone", "ipad"
-    ];
-
-    for (var k = 0; k < knownKeywords.length; k++) {
-      if (uaLower.indexOf(knownKeywords[k]) !== -1) {
-        for (var brand in devices) {
-          if (!devices.hasOwnProperty(brand)) continue;
-          var list = devices[brand];
-          for (var i = 0; i < list.length; i++) {
-            var modelLower = list[i].model.toLowerCase();
-            if (modelLower.indexOf(knownKeywords[k]) !== -1) {
-              matched = { brand: brand, device: list[i] };
-              matchedBy = "user agent";
-              break;
-            }
+    // --- STRATEGY A: iPhone / iPad detection ---
+    var isIOS = /iphone|ipad|ipod/i.test(uaLower);
+    if (isIOS) {
+      var iphoneDefault = null;
+      if (devices["Apple iPhone"]) {
+        for (var m = 0; m < devices["Apple iPhone"].length; m++) {
+          if (devices["Apple iPhone"][m].model === "iPhone 13") {
+            iphoneDefault = devices["Apple iPhone"][m];
+            break;
           }
-          if (matched) break;
         }
-        if (matched) break;
+      }
+      if (iphoneDefault) {
+        matched = { brand: "Apple iPhone", device: iphoneDefault };
       }
     }
 
-    // ---------- STRATEGY 2: Screen size match ----------
-    if (!matched) {
-      var screenW = window.screen.width;
-      var screenH = window.screen.height;
-      var screenSizeInches = Math.sqrt(screenW * screenW + screenH * screenH) / (window.devicePixelRatio * 160);
-      screenSizeInches = Math.round(screenSizeInches * 2) / 2;
+    // --- STRATEGY B: Android — look for model in UA ---
+    if (!matched && /android/i.test(uaLower)) {
+      var knownKeywords = [
+        "redmi", "poco", "xiaomi",
+        "sm-", "galaxy",
+        "rmx", "realme",
+        "cph", "oppo", "reno",
+        "vivo", "oneplus", "nord",
+        "infinix", "tecno", "itel", "honor",
+        "huawei", "nova", "mate",
+        "moto", "motorola",
+        "nokia", "pixel"
+      ];
 
-      if (screenSizeInches > 3.5 && screenSizeInches < 8.5) {
-        for (var brand2 in devices) {
-          if (!devices.hasOwnProperty(brand2)) continue;
-          var list2 = devices[brand2];
-          for (var j = 0; j < list2.length; j++) {
-            if (Math.abs(list2[j].size - screenSizeInches) < 0.2) {
-              matched = { brand: brand2, device: list2[j] };
-              matchedBy = "screen size (~" + screenSizeInches + '")';
-              break;
+      for (var k = 0; k < knownKeywords.length; k++) {
+        var keyword = knownKeywords[k];
+        if (uaLower.indexOf(keyword) !== -1) {
+          for (var brand in devices) {
+            if (!devices.hasOwnProperty(brand)) continue;
+            var list = devices[brand];
+            for (var i = 0; i < list.length; i++) {
+              var modelLower = list[i].model.toLowerCase();
+              if (modelLower.indexOf(keyword) !== -1) {
+                matched = { brand: brand, device: list[i] };
+                break;
+              }
             }
+            if (matched) break;
           }
           if (matched) break;
         }
       }
     }
 
-    // ---------- STRATEGY 3: iOS fallback ----------
-    if (!matched) {
-      var isIOS = /iphone|ipad|ipod/.test(uaLower);
-      if (isIOS) {
-        var iphoneDefault = null;
-        if (devices["Apple iPhone"]) {
-          for (var m = 0; m < devices["Apple iPhone"].length; m++) {
-            if (devices["Apple iPhone"][m].model === "iPhone 13") {
-              iphoneDefault = devices["Apple iPhone"][m];
-              break;
-            }
-          }
-        }
-        if (iphoneDefault) {
-          matched = { brand: "Apple iPhone", device: iphoneDefault };
-          matchedBy = "iOS default (iPhone 13)";
-        }
-      }
-    }
-
-    // ---------- Handle result ----------
+    // ---------- STEP 3: Handle result ----------
     if (matched) {
       if (brandSelect) brandSelect.value = matched.brand;
       populateModels();
@@ -781,29 +782,26 @@ if (autoDetectBtn) {
       var oldTip = document.getElementById("autoTip");
       if (oldTip) oldTip.classList.remove("show");
     } else {
-      // Honest, clear message for the user
+      // Mobile but no match — be honest
       showToast("Your browser blocks device info for privacy. Please select your phone from the menu below.", "warning");
 
-      // Show helpful tip below the button
       var tip = document.getElementById("autoTip");
       if (!tip) {
         tip = document.createElement("div");
         tip.id = "autoTip";
         tip.className = "auto-tip";
-        tip.innerHTML = '<strong>Why?</strong> Modern browsers hide phone model info for privacy. ' +
+        tip.innerHTML = '<strong>Why?</strong> Modern mobile browsers hide the phone model for privacy. ' +
           'Please select your phone from the <strong>Phone Brand</strong> and <strong>Phone Model</strong> menus below, ' +
           'or type in the search box.';
         autoDetectBtn.parentNode.insertBefore(tip, autoDetectBtn.nextSibling);
       }
       tip.classList.add("show");
 
-      // Focus the search box
       if (searchBox) {
         searchBox.focus();
         searchBox.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
-      // Auto-hide the tip after 8 seconds
       setTimeout(function () {
         if (tip) tip.classList.remove("show");
       }, 8000);
