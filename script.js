@@ -1,5 +1,6 @@
 // ==========================================================
-// SensiX — Sensitivity Engine v8 (with iOS DPI hiding)
+// SensiX — Sensitivity Engine v9 (4-Layer Physics Algorithm)
+// Layers: Touch Response → Playstyle → Finger Count → Calibration
 // ==========================================================
 
 var brandSelect     = document.getElementById("brand");
@@ -14,26 +15,22 @@ if (typeof devices === "undefined") {
   console.error("devices.js did not load. Check script order in index.html.");
 }
 
-// ---------- TOAST NOTIFICATIONS ----------
+// ---------- TOAST ----------
 function showToast(message, type) {
   type = type || "warning";
-
   var container = document.querySelector(".toast-container");
   if (!container) {
     container = document.createElement("div");
     container.className = "toast-container";
     document.body.appendChild(container);
   }
-
   var icon = "⚠️";
   if (type === "success") icon = "✅";
   if (type === "error") icon = "❌";
-
   var toast = document.createElement("div");
   toast.className = "toast " + type;
   toast.innerHTML = '<span class="toast-icon">' + icon + '</span><span>' + message + '</span>';
   container.appendChild(toast);
-
   setTimeout(function () {
     toast.classList.add("hide");
     setTimeout(function () {
@@ -56,7 +53,6 @@ if (brandSelect && typeof devices !== "undefined") {
 function populateModels(filterText) {
   if (!modelSelect) return;
   filterText = filterText || "";
-
   var brand = brandSelect ? brandSelect.value : "";
   modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
 
@@ -71,7 +67,6 @@ function populateModels(filterText) {
   for (var i = 0; i < list.length; i++) {
     var device = list[i];
     if (search && device.model.toLowerCase().indexOf(search) === -1) continue;
-
     var opt = document.createElement("option");
     opt.value = device.model;
     opt.textContent = device.model;
@@ -103,14 +98,12 @@ function highlightMatch(text, query) {
 
 function buildSuggestions(query) {
   if (!suggestions) return;
-
   var q = query.toLowerCase().trim();
   if (!q) {
     suggestions.classList.remove("show");
     suggestions.innerHTML = "";
     return;
   }
-
   if (typeof devices === "undefined") return;
 
   var results = [];
@@ -158,26 +151,19 @@ function selectSuggestion(brand, model) {
   populateModels("");
   if (modelSelect) modelSelect.value = model;
   if (searchBox) searchBox.value = model;
-
   if (suggestions) {
     suggestions.classList.remove("show");
     suggestions.innerHTML = "";
   }
-
   showToast("Selected: " + model, "success");
 }
 
 if (searchBox) {
-  searchBox.addEventListener("input", function () {
-    buildSuggestions(searchBox.value);
-  });
-
+  searchBox.addEventListener("input", function () { buildSuggestions(searchBox.value); });
   searchBox.addEventListener("keydown", function (e) {
     if (!suggestions || !suggestions.classList.contains("show")) return;
-
     var items = suggestions.querySelectorAll(".suggestion-item");
     if (items.length === 0) return;
-
     if (e.key === "ArrowDown") {
       e.preventDefault();
       activeIndex = (activeIndex + 1) % items.length;
@@ -188,34 +174,25 @@ if (searchBox) {
       updateActive(items);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (activeIndex >= 0 && items[activeIndex]) {
-        items[activeIndex].click();
-      } else if (items[0]) {
-        items[0].click();
-      }
+      if (activeIndex >= 0 && items[activeIndex]) items[activeIndex].click();
+      else if (items[0]) items[0].click();
     } else if (e.key === "Escape") {
       suggestions.classList.remove("show");
       activeIndex = -1;
     }
   });
-
   document.addEventListener("click", function (e) {
     if (suggestions && !suggestions.contains(e.target) && e.target !== searchBox) {
       suggestions.classList.remove("show");
     }
   });
-
   searchBox.addEventListener("focus", function () {
-    if (searchBox.value.trim()) {
-      buildSuggestions(searchBox.value);
-    }
+    if (searchBox.value.trim()) buildSuggestions(searchBox.value);
   });
 }
 
 function updateActive(items) {
-  for (var i = 0; i < items.length; i++) {
-    items[i].classList.remove("active");
-  }
+  for (var i = 0; i < items.length; i++) items[i].classList.remove("active");
   if (activeIndex >= 0 && items[activeIndex]) {
     items[activeIndex].classList.add("active");
     items[activeIndex].scrollIntoView({ block: "nearest" });
@@ -224,83 +201,127 @@ function updateActive(items) {
 
 // ---------- HELPERS ----------
 function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+function safeInt(v, fallback) { var n = parseInt(v, 10); return isNaN(n) ? fallback : n; }
+function safeFloat(v, fallback) { var n = parseFloat(v); return isNaN(n) ? fallback : n; }
+function setText(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; }
 
-function safeInt(v, fallback) {
-  var n = parseInt(v, 10);
-  return isNaN(n) ? fallback : n;
-}
-
-function safeFloat(v, fallback) {
-  var n = parseFloat(v);
-  return isNaN(n) ? fallback : n;
-}
-
-function setText(id, value) {
-  var el = document.getElementById(id);
-  if (el) el.textContent = value;
-}
-
-// ---------- HARDWARE BASE ----------
-function getHardwareBase(hz, ram, size, tier) {
+// ==========================================================
+// LAYER 1 — TOUCH RESPONSE FOUNDATION
+// Base values from refresh rate + screen size + RAM
+// ==========================================================
+function getTouchBase(hz, ram, size, isIOS) {
+  // Refresh rate → base values
+  // Lower Hz = screen is slower = need HIGHER sensi to compensate
   var general, reddot, sc2x, sc4x, awm, freelook;
 
-  if (hz >= 144) {
-    general = 80; reddot = 78; sc2x = 72; sc4x = 68; awm = 40; freelook = 60;
+  if (hz >= 165) {
+    // Flagship gaming (ROG, RedMagic)
+    general = 55; reddot = 50; sc2x = 45; sc4x = 40; awm = 30; freelook = 45;
+  } else if (hz >= 144) {
+    general = 65; reddot = 60; sc2x = 55; sc4x = 50; awm = 35; freelook = 55;
   } else if (hz >= 120) {
-    general = 85; reddot = 82; sc2x = 78; sc4x = 72; awm = 45; freelook = 65;
+    general = 75; reddot = 72; sc2x = 65; sc4x = 58; awm = 40; freelook = 62;
   } else if (hz >= 90) {
-    general = 92; reddot = 90; sc2x = 85; sc4x = 80; awm = 50; freelook = 72;
+    general = 88; reddot = 85; sc2x = 78; sc4x = 70; awm = 48; freelook = 72;
   } else {
-    general = 100; reddot = 98; sc2x = 92; sc4x = 85; awm = 55; freelook = 80;
+    // 60 Hz — oldest / budget screens
+    general = 105; reddot = 100; sc2x = 92; sc4x = 82; awm = 58; freelook = 85;
   }
 
-  if (ram <= 3) { general += 5; reddot += 5; sc2x += 5; }
-  else if (ram >= 12) { general -= 3; reddot -= 3; }
+  // RAM adjustment — low RAM means unstable frames = boost slightly
+  if (ram <= 2)      { general += 10; reddot += 8; sc2x += 8; }
+  else if (ram <= 3) { general += 6;  reddot += 5; sc2x += 5; }
+  else if (ram <= 4) { general += 3;  reddot += 2; sc2x += 2; }
+  else if (ram >= 12){ general -= 5;  reddot -= 5; sc2x -= 4; }
 
-  if (size >= 6.8) { general -= 4; reddot -= 4; sc2x -= 3; }
-  else if (size <= 5.5) { general += 5; reddot += 5; sc2x += 4; }
+  // Screen size — bigger screen means more thumb travel
+  // Smaller screens need HIGHER sensi (less travel distance)
+  if (size <= 5.0)      { general += 12; reddot += 10; sc2x += 8; }
+  else if (size <= 5.5) { general += 8;  reddot += 7;  sc2x += 6; }
+  else if (size <= 6.0) { general += 4;  reddot += 3;  sc2x += 3; }
+  else if (size >= 6.8) { general -= 5;  reddot -= 4;  sc2x -= 3; }
+  else if (size >= 7.0) { general -= 8;  reddot -= 6;  sc2x -= 5; }
 
-  if (tier === "flagship") { general -= 2; reddot -= 2; }
-  if (tier === "low") { general += 3; reddot += 3; }
+  // iOS touch latency is lower than Android
+  if (isIOS) {
+    general -= 6; reddot -= 5; sc2x -= 4; sc4x -= 3; awm -= 2; freelook -= 4;
+  }
 
-  return { general: general, reddot: reddot, sc2x: sc2x, sc4x: sc4x, awm: awm, freelook: freelook };
+  return {
+    general: general, reddot: reddot, sc2x: sc2x,
+    sc4x: sc4x, awm: awm, freelook: freelook
+  };
 }
 
-// ---------- PLAYSTYLE ----------
+// ==========================================================
+// LAYER 2 — PLAYSTYLE MODIFIERS
+// Each style affects sliders DIFFERENTLY
+// ==========================================================
 function getPlaystyleMod(style) {
-  if (style === "aggressive") return { general: 8, reddot: 12, sc2x: 10, sc4x: 5, awm: -10, freelook: 15 };
-  if (style === "freestyle")  return { general: 12, reddot: 20, sc2x: 15, sc4x: 5, awm: -15, freelook: 20 };
-  if (style === "headshot")   return { general: 10, reddot: 25, sc2x: 20, sc4x: 10, awm: -10, freelook: 10 };
-  if (style === "sniper")     return { general: -15, reddot: -10, sc2x: -15, sc4x: -20, awm: 30, freelook: -20 };
+  if (style === "headshot") {
+    // One-tap headshots: high Red Dot, high General, low AWM
+    return { general: +25, reddot: +35, sc2x: +25, sc4x: +10, awm: -10, freelook: +15 };
+  }
+  if (style === "aggressive") {
+    // Rusher: high General + Free Look for tracking
+    return { general: +10, reddot: +15, sc2x: +12, sc4x: +5, awm: -15, freelook: +20 };
+  }
+  if (style === "freestyle") {
+    // Drag shots: max Red Dot + Free Look, low AWM
+    return { general: +20, reddot: +25, sc2x: +18, sc4x: +8, awm: -20, freelook: +25 };
+  }
+  if (style === "sniper") {
+    // Sniper: low everything except AWM
+    return { general: -20, reddot: -15, sc2x: -20, sc4x: -25, awm: +30, freelook: -25 };
+  }
+  // Balanced
   return { general: 0, reddot: 0, sc2x: 0, sc4x: 0, awm: 0, freelook: 0 };
 }
 
-// ---------- FINGER ----------
+// ==========================================================
+// LAYER 3 — FINGER COUNT MODIFIER
+// More fingers = more control = lower sensi is better
+// ==========================================================
 function getFingerMod(fingers) {
-  if (fingers === "2") return { general: 5, reddot: 5, sc2x: 5, sc4x: 5, awm: 0, freelook: 10 };
-  if (fingers === "3") return { general: 2, reddot: 2, sc2x: 2, sc4x: 2, awm: 0, freelook: 5 };
-  if (fingers === "5") return { general: -5, reddot: -5, sc2x: -5, sc4x: -5, awm: 0, freelook: -5 };
+  if (fingers === "2") {
+    // 2 fingers = thumbs only, needs higher sensi
+    return { general: +8, reddot: +8, sc2x: +6, sc4x: +6, awm: 0, freelook: +12 };
+  }
+  if (fingers === "3") {
+    // 3 fingers = claw, slight boost
+    return { general: +4, reddot: +4, sc2x: +3, sc4x: +3, awm: 0, freelook: +6 };
+  }
+  if (fingers === "5") {
+    // 5 fingers = pro setup, lower sensi for precision
+    return { general: -6, reddot: -6, sc2x: -4, sc4x: -4, awm: 0, freelook: -6 };
+  }
+  // 4 fingers = competitive standard, no adjustment
   return { general: 0, reddot: 0, sc2x: 0, sc4x: 0, awm: 0, freelook: 0 };
 }
 
-// ---------- DPI ----------
+// ==========================================================
+// LAYER 4 — DPI CALCULATOR (Android only)
+// ==========================================================
 function calculateDPI(hz, size, tier) {
   var dpi;
-  if (hz >= 144) dpi = 420;
-  else if (hz >= 120) dpi = 470;
-  else if (hz >= 90) dpi = 540;
-  else dpi = 620;
+  if (hz >= 165)      dpi = 380;
+  else if (hz >= 144) dpi = 410;
+  else if (hz >= 120) dpi = 460;
+  else if (hz >= 90)  dpi = 520;
+  else                dpi = 600;
 
-  if (size <= 5.5) dpi += 40;
+  if (size <= 5.5)      dpi += 40;
   else if (size >= 6.8) dpi -= 30;
 
-  if (tier === "flagship") dpi -= 30;
-  if (tier === "low") dpi += 20;
+  if (tier === "flagship") dpi -= 25;
+  if (tier === "low")      dpi += 30;
 
   return clamp(dpi, 350, 850);
 }
 
-// ---------- BUTTON SIZES ----------
+// ==========================================================
+// BUTTON SIZES
+// ==========================================================
 function getButtonSizes(style, fingers, size) {
   var base = { fire: 45, drag: 40, scope: 35, jump: 30, crouch: 30, trans: 30 };
 
@@ -331,7 +352,9 @@ function getButtonSizes(style, fingers, size) {
   return base;
 }
 
-// ---------- HUD ----------
+// ==========================================================
+// HUD RECOMMENDATION
+// ==========================================================
 function getHUDRecommendation(fingers, style) {
   var layouts = {
     "2": "2-Finger Thumb Setup — Left thumb moves, right thumb aims & fires. Best for beginners.",
@@ -339,7 +362,6 @@ function getHUDRecommendation(fingers, style) {
     "4": "4-Finger Full Claw — Left thumb moves, left index fires, right thumb aims, right index scopes/jumps. Competitive standard.",
     "5": "5-Finger Pro Claw — All fingers active. Maximum control for freestyle and pro play."
   };
-
   var tips = {
     "aggressive": [
       "Fire Button size: 45–50% (bigger = faster tap).",
@@ -372,17 +394,17 @@ function getHUDRecommendation(fingers, style) {
       "Enable 'Precise on Scope' for stable aim."
     ]
   };
-
   return {
     layout: layouts[fingers] || layouts["4"],
     tips: tips[style] || tips["balanced"]
   };
 }
 
-// ---------- COACH TIPS ----------
+// ==========================================================
+// COACH TIPS
+// ==========================================================
 function getCoachTips(tier, style, hz, isIPhone) {
   var tips = [];
-
   if (hz <= 60) {
     tips.push("📉 Your screen is 60 Hz — expected for older/budget phones. Keep graphics on 'Smooth'.");
     tips.push("🎯 Higher sensitivity compensates for your screen's slower response.");
@@ -392,20 +414,19 @@ function getCoachTips(tier, style, hz, isIPhone) {
   } else {
     tips.push("📊 90 Hz screen — solid middle ground. Lock 60 FPS for stability.");
   }
-
   if (isIPhone) {
     tips.push("📱 iPhone detected — iOS does not support DPI adjustment. Your values are tuned for iOS touch response.");
   }
-
   if (style === "headshot") tips.push("💥 One-tap drill: Red Dot + drag upward = instant headshot.");
   if (style === "sniper") tips.push("🔭 Crouch before firing for zero recoil.");
   if (style === "freestyle") tips.push("🌀 Master 180° spin: quick swipe + fire = close-range killer.");
   if (style === "aggressive") tips.push("⚔️ Rush with SMG — high general sens tracks moving enemies.");
-
   return tips;
 }
 
-// ---------- GENERATE ----------
+// ==========================================================
+// GENERATE — main handler
+// ==========================================================
 var generateBtn = document.getElementById("generateBtn");
 
 if (generateBtn) {
@@ -414,14 +435,12 @@ if (generateBtn) {
       showToast("Device database failed to load. Refresh the page.", "error");
       return;
     }
-
     if (!modelSelect || !modelSelect.value) {
       showToast("Please select a phone model!", "warning");
       return;
     }
 
     var modelOpt = modelSelect.options[modelSelect.selectedIndex];
-    var brand = modelOpt.dataset.brand || (brandSelect ? brandSelect.value : "");
     var style = playstyleSelect ? playstyleSelect.value : "balanced";
     var fingers = fingersSelect ? fingersSelect.value : "4";
 
@@ -430,13 +449,18 @@ if (generateBtn) {
     var size = safeFloat(modelOpt.dataset.size, 6.5);
     var tier = modelOpt.dataset.tier || "mid";
 
-    // Detect iPhone
     var isIPhone = modelOpt.value.toLowerCase().indexOf("iphone") !== -1;
 
-    var base = getHardwareBase(hz, ram, size, tier);
+    // ---------- LAYER 1: Touch Response ----------
+    var base = getTouchBase(hz, ram, size, isIPhone);
+
+    // ---------- LAYER 2: Playstyle ----------
     var styleMod = getPlaystyleMod(style);
+
+    // ---------- LAYER 3: Finger Count ----------
     var fingerMod = getFingerMod(fingers);
 
+    // ---------- LAYER 4: Final Combine & Calibrate ----------
     var result = {
       general:  clamp(base.general  + styleMod.general  + fingerMod.general,  1, 200),
       reddot:   clamp(base.reddot   + styleMod.reddot   + fingerMod.reddot,   1, 200),
@@ -447,6 +471,7 @@ if (generateBtn) {
       dpi:      calculateDPI(hz, size, tier)
     };
 
+    // Fill sensitivity
     setText("r-general", result.general);
     setText("r-reddot", result.reddot);
     setText("r-2x", result.sc2x);
@@ -454,7 +479,7 @@ if (generateBtn) {
     setText("r-awm", result.awm);
     setText("r-freelook", result.freelook);
 
-    // ---------- iOS DETECTION (hide DPI row entirely) ----------
+    // ---------- iOS DPI HIDING ----------
     var dpiRow = document.getElementById("r-dpi").closest(".result-item");
     if (dpiRow) {
       if (isIPhone) {
@@ -465,11 +490,13 @@ if (generateBtn) {
       }
     }
 
+    // Hardware info
     setText("i-ram", ram + " GB");
     setText("i-hz", hz + " Hz");
     setText("i-size", size + '"');
     setText("i-dpi", isIPhone ? "iOS (No DPI)" : tier.toUpperCase());
 
+    // Buttons
     var buttons = getButtonSizes(style, fingers, size);
     setText("b-fire",   buttons.fire + "%");
     setText("b-drag",   buttons.drag + "%");
@@ -478,6 +505,7 @@ if (generateBtn) {
     setText("b-crouch", buttons.crouch + "%");
     setText("b-trans",  buttons.trans + "%");
 
+    // HUD
     var hud = getHUDRecommendation(fingers, style);
     setText("hud-layout", hud.layout);
 
@@ -491,6 +519,7 @@ if (generateBtn) {
       }
     }
 
+    // Coach tips
     var coachList = document.getElementById("coach-tips");
     if (coachList) {
       coachList.innerHTML = "";
@@ -502,6 +531,7 @@ if (generateBtn) {
       }
     }
 
+    // Show card
     var card = document.getElementById("resultCard");
     if (card) {
       card.style.display = "block";
@@ -575,11 +605,7 @@ if (linkBtn) {
     var model = modelSelect ? modelSelect.value : "";
     var style = playstyleSelect ? playstyleSelect.value : "balanced";
     var fingers = fingersSelect ? fingersSelect.value : "4";
-
-    if (!model) {
-      showToast("Generate a setup first!", "warning");
-      return;
-    }
+    if (!model) { showToast("Generate a setup first!", "warning"); return; }
 
     var url = window.location.origin + window.location.pathname +
       "?m=" + encodeURIComponent(model) +
@@ -652,7 +678,6 @@ if (compareBtn) {
       if (abs <= 5) { cls = "good"; msg = "✅ Perfect"; }
       else if (abs <= 15) { cls = "ok"; msg = "⚠️ Slightly " + (diff > 0 ? "high" : "low") + " by " + abs; }
       else { cls = "bad"; msg = "❌ " + (diff > 0 ? "Too high" : "Too low") + " by " + abs; }
-
       html += '<div class="' + cls + '"><b>' + labels[key] + ':</b> yours ' + c +
               ' → target ' + target[key] + ' — ' + msg + '</div>';
     }
@@ -671,10 +696,8 @@ if (compareBtn) {
 // ---------- LOAD FROM SHARED URL ----------
 window.addEventListener("load", function () {
   if (typeof devices === "undefined") return;
-
   var p = new URLSearchParams(window.location.search);
   if (!p.has("m")) return;
-
   var modelName = p.get("m");
   var found = null;
   for (var brand in devices) {
@@ -689,7 +712,6 @@ window.addEventListener("load", function () {
     if (found) break;
   }
   if (!found) return;
-
   if (brandSelect) brandSelect.value = found.brand;
   populateModels();
   if (modelSelect) modelSelect.value = found.device.model;
@@ -703,14 +725,9 @@ window.addEventListener("load", function () {
 var autoDetectBtn = document.getElementById("autoDetectBtn");
 if (autoDetectBtn) {
   autoDetectBtn.addEventListener("click", function () {
-    if (typeof devices === "undefined") {
-      showToast("Device database not loaded.", "error");
-      return;
-    }
-
+    if (typeof devices === "undefined") { showToast("Device database not loaded.", "error"); return; }
     var ua = navigator.userAgent.toLowerCase();
     var matched = null;
-
     for (var brand in devices) {
       if (!devices.hasOwnProperty(brand)) continue;
       var list = devices[brand];
@@ -723,7 +740,6 @@ if (autoDetectBtn) {
       }
       if (matched) break;
     }
-
     if (matched) {
       brandSelect.value = matched.brand;
       populateModels();
