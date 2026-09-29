@@ -493,52 +493,41 @@ const devices = {
     { model: "OnePlus Nord CE 4 Lite", ram: 8, hz: 120, size: 6.67, tier: "mid" },
     { model: "OnePlus Nord CE 5", ram: 12, hz: 120, size: 6.77, tier: "high" },
   ],
-  "Infinix": [
-    { model: "Infinix Hot 4", ram: 2, hz: 60, size: 5.5, tier: "low" },
-    { model: "Infinix Hot 5", ram: 2, hz: 60, size: 5.5, tier: "low" },
-    { model: "Infinix Hot 6", ram: 2, hz: 60, size: 6.0, tier: "low" },
-    { model: "Infinix Hot 7", ram: 4, hz: 60, size: 6.2, tier: "low" },
-    { model: "Infinix Hot 8", ram: 4, hz: 60, size: 6.52, tier: "low" },
+   "Infinix": [
+    // --- 2020 & Earlier ---
     { model: "Infinix Hot 9", ram: 4, hz: 60, size: 6.6, tier: "low" },
     { model: "Infinix Hot 10", ram: 4, hz: 60, size: 6.78, tier: "low" },
-    { model: "Infinix Hot 11", ram: 4, hz: 60, size: 6.6, tier: "low" },
-    { model: "Infinix Hot 12", ram: 6, hz: 90, size: 6.82, tier: "low" },
-    { model: "Infinix Hot 20", ram: 8, hz: 120, size: 6.58, tier: "mid" },
-    { model: "Infinix Hot 30", ram: 8, hz: 90, size: 6.78, tier: "mid" },
-    { model: "Infinix Hot 40", ram: 8, hz: 90, size: 6.78, tier: "mid" },
-    { model: "Infinix Hot 50", ram: 8, hz: 120, size: 6.78, tier: "mid" },
-    { model: "Infinix Hot 60", ram: 8, hz: 120, size: 6.78, tier: "mid" },
-    { model: "Infinix Hot 60 Pro", ram: 8, hz: 144, size: 6.78, tier: "high" },
-
     { model: "Infinix Note 7", ram: 6, hz: 60, size: 6.95, tier: "mid" },
     { model: "Infinix Note 8", ram: 6, hz: 60, size: 6.95, tier: "mid" },
+    
+    // --- 2021 ---
+    { model: "Infinix Hot 11", ram: 4, hz: 60, size: 6.6, tier: "low" },
     { model: "Infinix Note 10", ram: 6, hz: 90, size: 6.95, tier: "mid" },
-    { model: "Infinix Note 11", ram: 6, hz: 60, size: 6.95, tier: "mid" },
+    
+    // --- 2022 ---
+    { model: "Infinix Hot 12", ram: 6, hz: 90, size: 6.82, tier: "low" },
+    { model: "Infinix Hot 20 Free Fire", ram: 6, hz: 90, size: 6.82, tier: "mid" },
     { model: "Infinix Note 12", ram: 8, hz: 60, size: 6.7, tier: "mid" },
+    { model: "Infinix Zero 20", ram: 8, hz: 90, size: 6.7, tier: "mid" },
+    
+    // --- 2023 ---
+    { model: "Infinix Hot 30", ram: 8, hz: 90, size: 6.78, tier: "mid" },
+    { model: "Infinix Hot 40 Pro", ram: 8, hz: 120, size: 6.78, tier: "mid" },
     { model: "Infinix Note 30", ram: 8, hz: 120, size: 6.78, tier: "mid" },
-    { model: "Infinix Note 40", ram: 8, hz: 120, size: 6.78, tier: "high" },
-    { model: "Infinix Note 50", ram: 12, hz: 144, size: 6.78, tier: "high" },
-    { model: "Infinix Note 50 Pro", ram: 12, hz: 144, size: 6.78, tier: "high" },
-
-    { model: "Infinix Zero 5G", ram: 8, hz: 120, size: 6.78, tier: "high" },
-    { model: "Infinix Zero 5G 2023", ram: 8, hz: 120, size: 6.78, tier: "high" },
-    { model: "Infinix Zero 20", ram: 8, hz: 90, size: 6.7, tier: "high" },
+    { model: "Infinix Note 30 5G", ram: 8, hz: 120, size: 6.78, tier: "mid" },
     { model: "Infinix Zero 30", ram: 12, hz: 144, size: 6.78, tier: "high" },
-    { model: "Infinix Zero 40", ram: 12, hz: 144, size: 6.78, tier: "high" },
-
-    { model: "Infinix Smart 2", ram: 2, hz: 60, size: 5.5, tier: "low" },
-    { model: "Infinix Smart 3", ram: 2, hz: 60, size: 5.5, tier: "low" },
-    { model: "Infinix Smart 4", ram: 2, hz: 60, size: 6.6, tier: "low" },
-    { model: "Infinix Smart 5", ram: 3, hz: 60, size: 6.6, tier: "low" },
-    { model: "Infinix Smart 6", ram: 3, hz: 60, size: 6.6, tier: "low" },
-    { model: "Infinix Smart 7", ram: 4, hz: 60, size: 6.6, tier: "low" },
     { model: "Infinix Smart 8", ram: 4, hz: 90, size: 6.6, tier: "low" },
-    { model: "Infinix Smart 9", ram: 4, hz: 120, size: 6.7, tier: "low" },
-    { model: "Infinix Smart 10", ram: 4, hz: 120, size: 6.67, tier: "low" },
-
-    { model: "Infinix GT 10 Pro", ram: 8, hz: 120, size: 6.67, tier: "high" },
+    
+    // --- 2024 ---
     { model: "Infinix GT 20 Pro", ram: 12, hz: 144, size: 6.78, tier: "high" },
+    { model: "Infinix Note 40 Pro", ram: 8, hz: 120, size: 6.78, tier: "mid" },
+    { model: "Infinix Note 40 Pro+ 5G", ram: 12, hz: 120, size: 6.78, tier: "high" },
+    { model: "Infinix Hot 50 Pro+", ram: 8, hz: 120, size: 6.78, tier: "mid" },
+    
+    // --- 2025 ---
+    { model: "Infinix Note 50 Pro+ 5G", ram: 12, hz: 144, size: 6.78, tier: "high" },
     { model: "Infinix GT 30 Pro", ram: 12, hz: 144, size: 6.78, tier: "high" },
+    { model: "Infinix Hot 60", ram: 8, hz: 120, size: 6.78, tier: "mid" },
   ],
   "Tecno": [
     { model: "Tecno Spark 2", ram: 2, hz: 60, size: 6.0, tier: "low" },
