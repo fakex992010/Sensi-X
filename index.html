@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SensiX — Free Fire sensitivity generator with hardware-aware calculation, DPI, HUD codes, and button sizes for every device." />
+  <title>SensiX ⚡ Extreme Free Fire Aiming Coach</title>
+  <link rel="icon" type="image/png" href="SensiX.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ========== BACKGROUND VIDEO ========== -->
+  <div class="video-bg">
+    <div class="video-overlay"></div>
+    <video autoplay muted loop playsinline class="bg-video">
+      <source src="bg.mp4" type="video/mp4">
+    </video>
+  </div>
+
+  <div class="container">
+    <header>
+      <div class="logo-wrap">
+        <img src="SensiX.png" alt="SensiX Logo" class="logo-img" />
+      </div>
+      <p class="tagline">SENSI GENERATOR</p>
+      <button id="autoDetectBtn" class="mini-btn">📱 Auto-detect my device</button>
+    </header>
+
+    <!-- ========== INPUT CARD ========== -->
+    <div class="card">
+      <label for="searchBox">🔍 Search Phone</label>
+      <div class="search-wrap">
+        <input type="text" id="searchBox" placeholder="Type phone name... e.g. Redmi Note 15" autocomplete="off" />
+        <div id="suggestions" class="suggestions"></div>
+      </div>
+
+      <label for="brand">📱 Phone Brand</label>
+      <select id="brand"><option value="">-- Select Brand --</option></select>
+
+      <label for="model">📲 Phone Model</label>
+      <select id="model"><option value="">-- Select Brand First --</option></select>
+
+      <label for="playstyle">🎯 Playstyle</label>
+      <select id="playstyle">
+        <option value="balanced">Balanced</option>
+        <option value="aggressive">Aggressive / Rusher</option>
+        <option value="freestyle">Freestyle / Drag Shots</option>
+        <option value="headshot">Extreme Headshot (One-Tap)</option>
+        <option value="sniper">Sniper / Long Range</option>
+      </select>
+
+      <label for="fingers">🖐️ Finger Setup</label>
+      <select id="fingers">
+        <option value="2">2 Fingers (Thumbs only)</option>
+        <option value="3">3 Fingers (Claw)</option>
+        <option value="4" selected>4 Fingers (Full Claw)</option>
+        <option value="5">5 Fingers (Pro)</option>
+      </select>
+
+      <button id="generateBtn">⚡ GENERATE MY SETUP</button>
+    </div>
+
+    <!-- ========== RESULTS ========== -->
+    <div class="card result-card" id="resultCard" style="display:none;">
+      <h2>🎯 Your Sensitivity</h2>
+      <div class="results">
+        <div class="result-item"><span>General</span><strong id="r-general">-</strong></div>
+        <div class="result-item"><span>Red Dot</span><strong id="r-reddot">-</strong></div>
+        <div class="result-item"><span>2x Scope</span><strong id="r-2x">-</strong></div>
+        <div class="result-item"><span>4x Scope</span><strong id="r-4x">-</strong></div>
+        <div class="result-item"><span>AWM Scope</span><strong id="r-awm">-</strong></div>
+        <div class="result-item"><span>Free Look</span><strong id="r-freelook">-</strong></div>
+        <div class="result-item full"><span>Recommended DPI</span><strong id="r-dpi">-</strong></div>
+      </div>
+
+      <div class="info-block">
+        <h3>📊 Detected Hardware</h3>
+        <div class="info-grid">
+          <div><span>RAM</span><strong id="i-ram">-</strong></div>
+          <div><span>Screen Hz</span><strong id="i-hz">-</strong></div>
+          <div><span>Size</span><strong id="i-size">-</strong></div>
+          <div><span>DPI Class</span><strong id="i-dpi">-</strong></div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <h3>🎮 Recommended Button Sizes</h3>
+        <div class="info-grid">
+          <div><span>Fire Button</span><strong id="b-fire">-</strong></div>
+          <div><span>Drag Fire</span><strong id="b-drag">-</strong></div>
+          <div><span>Scope</span><strong id="b-scope">-</strong></div>
+          <div><span>Jump</span><strong id="b-jump">-</strong></div>
+          <div><span>Crouch</span><strong id="b-crouch">-</strong></div>
+          <div><span>Transparency</span><strong id="b-trans">-</strong></div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <h3>🎮 Recommended HUD Setup</h3>
+        <p id="hud-layout" class="hud-text">-</p>
+        <ul id="hud-tips" class="hud-tips"></ul>
+      </div>
+
+      <div class="info-block">
+        <h3>💡 Aim Coach Tips</h3>
+        <ul id="coach-tips" class="hud-tips"></ul>
+      </div>
+
+      <p class="note">⚠️ Test in training mode. Adjust by ±10 to match your feel.</p>
+
+      <div class="btn-row">
+        <button id="copyBtn">📋 Copy</button>
+        <button id="waBtn">📤 WhatsApp</button>
+        <button id="linkBtn">🔗 Share Link</button>
+      </div>
+    </div>
+
+    <!-- ========== COMPARE SECTION ========== -->
+    <div class="card">
+      <h2 class="section-title">⚖️ Compare My Current Setup</h2>
+      <p class="hud-text">Enter your current sensitivity — SensiX will tell you what to change.</p>
+
+      <div class="compare-grid">
+        <div><label>General</label><input type="number" id="c-general" placeholder="e.g. 90" min="1" max="200"></div>
+        <div><label>Red Dot</label><input type="number" id="c-reddot" placeholder="e.g. 95" min="1" max="200"></div>
+        <div><label>2x</label><input type="number" id="c-2x" placeholder="e.g. 85" min="1" max="200"></div>
+        <div><label>4x</label><input type="number" id="c-4x" placeholder="e.g. 80" min="1" max="200"></div>
+        <div><label>AWM</label><input type="number" id="c-awm" placeholder="e.g. 50" min="1" max="200"></div>
+        <div><label>Free Look</label><input type="number" id="c-freelook" placeholder="e.g. 70" min="1" max="200"></div>
+        <div class="full-col"><label>DPI</label><input type="number" id="c-dpi" placeholder="e.g. 520" min="100" max="1000"></div>
+      </div>
+
+      <button id="compareBtn">⚖️ COMPARE</button>
+
+      <div id="compareResult" class="compare-result" style="display:none;"></div>
+    </div>
+
+    <!-- ========== HOW IT WORKS ========== -->
+    <div class="card">
+      <h2 class="section-title">📖 How SensiX Works</h2>
+      <div class="how-list">
+        <div class="how-item">
+          <strong>1. Hardware detection</strong>
+          <p>Your screen's <em>refresh rate</em> (Hz) drives responsiveness. SensiX boosts sensitivity on 60 Hz screens so your aim keeps up.</p>
+        </div>
+        <div class="how-item">
+          <strong>2. Playstyle physics</strong>
+          <p><b>Freestyle</b> and <b>Aggressive</b> need high General + Red Dot for drag shots. <b>Sniper</b> needs low AWM for micro-adjustments. <b>Headshot</b> pushes Red Dot very high for one-taps.</p>
+        </div>
+        <div class="how-item">
+          <strong>3. DPI + Button sizes</strong>
+          <p>Lower Hz = higher DPI. Button sizes are tuned per playstyle — bigger fire button for rushers, smaller for snipers.</p>
+        </div>
+        <div class="how-item">
+          <strong>4. HUD recommendation</strong>
+          <p>Your finger count changes the layout. 3-finger claw is for rushers, 4-finger is the competitive standard, 5-finger is for freestyle pros.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>SensiX © 2026 — Not affiliated with Garena Free Fire</p>
+    </footer>
+  </div>
+
+  <script src="devices.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
